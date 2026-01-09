@@ -11,24 +11,25 @@ settings = get_settings()
 # تهيئة المفتاح العام
 genai.configure(api_key=settings.GOOGLE_API_KEY)
 
-# --- قائمة النماذج التكتيكية (مرتبة حسب الأولوية) ---
+# --- قائمة النماذج المستقرة (The Stable Fleet) ---
+# تم استبدال النسخ التجريبية بالنسخ المستقرة ذات الحصة المجانية العالية
 TACTICAL_MODELS = [
-    "models/gemini-2.0-flash",       # Primary: السرعة والاستقرار
-    "models/gemini-2.5-flash",       # Secondary: التحديث الجديد
-    "models/gemini-2.0-flash-lite",  # Backup: توفير الموارد
-    "models/gemini-2.5-pro"          # Last Resort: الذكاء الأعلى
+    "gemini-1.5-flash",          # الأسرع والأعلى حصة (15 طلب/دقيقة)
+    "gemini-1.5-flash-latest",   # أحدث نسخة مستقرة من الفلاش
+    "gemini-1.5-pro",            # الأذكى (أبطأ قليلاً، 2 طلب/دقيقة)
+    "gemini-1.5-pro-latest"      # أحدث نسخة مستقرة من البرو
 ]
 
 class DominanceEngine:
     """
-    Nebula Failover Engine: محرك ذكي يقوم بالتبديل التلقائي بين النماذج
-    لضمان استمرار الخدمة حتى عند انتهاء الحصة (Quota).
+    Nebula Failover Engine: محرك ذكي يقوم بالتبديل التلقائي بين النماذج.
+    تم ضبطه الآن على النسخ المستقرة (Stable V1.5) لتجنب أخطاء الحصة (429).
     """
 
     @staticmethod
     def process(request: DominanceRequest) -> AlphaPack:
         
-        # 1. تجهيز البرومبت مرة واحدة
+        # 1. تجهيز البرومبت
         user_prompt = generate_user_prompt(
             topic=request.topic_or_keyword,
             tone=request.tone.value,
@@ -38,12 +39,12 @@ class DominanceEngine:
 
         last_error = None
 
-        # 2. حلقة التدوير التكتيكي (The Rotation Loop)
+        # 2. حلقة التدوير التكتيكي
         for model_name in TACTICAL_MODELS:
             try:
                 print(f"🔄 Engaging Model: {model_name} for topic: {request.topic_or_keyword}...")
                 
-                # إعداد النموذج الحالي
+                # إعداد النموذج
                 model = genai.GenerativeModel(
                     model_name=model_name,
                     generation_config={"response_mime_type": "application/json"}
@@ -63,19 +64,19 @@ class DominanceEngine:
                     safety_settings=safety_settings
                 )
 
-                # التحقق من وجود نص (لتجنب الحظر الصامت)
+                # التحقق
                 try:
                     raw_content = response.text
                 except ValueError:
-                    print(f"⚠️ Model {model_name} BLOCKED content due to Safety Filters.")
+                    print(f"⚠️ Model {model_name} BLOCKED content.")
                     last_error = "Blocked by Safety Filters"
-                    continue # انتقل للنموذج التالي
+                    continue
 
-                # تنظيف النص
+                # التنظيف
                 cleaned_content = raw_content.replace("```json", "").replace("```", "").strip()
                 data = json.loads(cleaned_content)
 
-                # النجاح! بناء وإرجاع الحزمة
+                # النجاح
                 print(f"✅ SUCCESS with {model_name}")
                 
                 return AlphaPack(
@@ -106,13 +107,12 @@ class DominanceEngine:
                 )
 
             except Exception as e:
-                # تسجيل الخطأ والانتقال للنموذج التالي
                 error_msg = str(e)
                 print(f"❌ Failed with {model_name}: {error_msg}")
                 last_error = error_msg
-                time.sleep(1) # استراحة قصيرة جداً قبل المحاولة التالية
+                time.sleep(2) # زدنا وقت الانتظار قليلاً لإعطاء النفس للنظام
                 continue
 
-        # إذا خرجنا من الحلقة دون نجاح
+        # الفشل النهائي
         print("🔥 ALL MODELS FAILED.")
-        raise ValueError(f"System Overload: All tactical models failed. Last error: {last_error}")
+        raise ValueError(f"System Overload: All models failed. Ensure API Key quota. Last error: {last_error}")
