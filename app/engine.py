@@ -10,12 +10,14 @@ settings = get_settings()
 
 genai.configure(api_key=settings.GOOGLE_API_KEY)
 
-# القائمة التكتيكية: نعتمد على الفلاش المستقر فقط
-TACTICAL_MODELS = ["gemini-1.5-flash"]
+# القائمة التكتيكية:
+# 1. gemini-1.5-flash: الخيار الأفضل والأسرع.
+# 2. gemini-pro: الخيار القديم الذي يعمل 100% على أي حساب (احتياطي).
+TACTICAL_MODELS = ["gemini-1.5-flash", "gemini-pro"]
 
 class DominanceEngine:
     """
-    Standard Engine: يعتمد على Gemini 1.5 Flash فقط لضمان الاستقرار.
+    Final Engine: محرك يدعم التبديل بين الفلاش والبرو لضمان الاستجابة.
     """
 
     @staticmethod
@@ -54,18 +56,17 @@ class DominanceEngine:
                 try:
                     raw_content = response.text
                 except ValueError:
-                    print(f"⚠️ Blocked. Feedback: {response.prompt_feedback}")
+                    # أحياناً يكون الرد محظوراً
+                    print(f"⚠️ Blocked by Safety Filters on {model_name}")
                     last_error = "Safety Block"
                     continue
 
-                # تنظيف النص من شوائب الماركداون
+                # تنظيف النص
                 cleaned_content = raw_content.replace("```json", "").replace("```", "").strip()
                 
-                # --- نقطة التصحيح هنا ---
                 data = json.loads(cleaned_content)
-                # -----------------------
 
-                print(f"✅ SUCCESS.")
+                print(f"✅ SUCCESS with {model_name}.")
                 
                 return AlphaPack(
                     title=f"Protocol ({model_name}): {request.topic_or_keyword}",
@@ -91,13 +92,14 @@ class DominanceEngine:
                     ],
                     hashtags=data.get("hashtags", ["#Viral"]),
                     caption=data.get("caption", "Caption here."),
-                    viral_flex_text=data.get("viral_flex_text", "Engineered by AI.")
+                    viral_flex_text=data.get("viral_flex_text", "Engineered by AI DOMINATOR.")
                 )
 
             except Exception as e:
-                print(f"❌ Error: {str(e)}")
+                print(f"❌ Error with {model_name}: {str(e)}")
                 last_error = str(e)
+                # نحاول مع النموذج التالي في القائمة
                 continue
 
-        # إذا وصلنا هنا، فهذا يعني الفشل التام
-        raise ValueError(f"Execution Failed. Error: {last_error}")
+        # إذا فشل الاثنان
+        raise ValueError(f"Execution Failed. All models failed. Last Error: {last_error}")
