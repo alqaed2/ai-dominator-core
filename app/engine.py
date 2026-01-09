@@ -13,7 +13,7 @@ genai.configure(api_key=settings.GOOGLE_API_KEY)
 # القائمة التكتيكية:
 # 1. gemini-1.5-flash: الخيار الأفضل والأسرع.
 # 2. gemini-pro: الخيار القديم الذي يعمل 100% على أي حساب (احتياطي).
-TACTICAL_MODELS = ["gemini-1.5-flash", "gemini-pro"]
+TACTICAL_MODELS = ["gemini-flash-latest"]
 
 class DominanceEngine:
     """
@@ -103,3 +103,4 @@ class DominanceEngine:
 
         # إذا فشل الاثنان
         raise ValueError(f"Execution Failed. All models failed. Last Error: {last_error}")
+
