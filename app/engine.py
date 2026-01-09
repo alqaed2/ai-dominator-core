@@ -1,102 +1,90 @@
-import random
-from app.schemas import DominanceRequest, AlphaPack, DominanceScore, HookVariant, ContentSection
+import json
+from openai import OpenAI
+from tenacity import retry, stop_after_attempt, wait_fixed
+from app.config import get_settings
+from app.schemas import DominanceRequest, AlphaPack
+from app.prompts import DOMINATOR_SYSTEM_PROMPT, generate_user_prompt
+
+settings = get_settings()
+
+# تهيئة العميل (يجب التأكد من وجود المفتاح في الإعدادات)
+client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 class DominanceEngine:
     """
-    The Brain: المسؤول عن تحويل المدخلات إلى مخرجات ذات هيمنة عالية.
-    يعمل حالياً بنظام القواعد المنطقية المتقدمة (Deterministic Intelligence).
+    Neural Engine: يستخدم LLM لتوليد محتوى عالي الجودة بهيكلية صارمة.
     """
 
     @staticmethod
-    def calculate_score(request: DominanceRequest) -> DominanceScore:
-        # خوارزمية مبدئية لحساب الهيمنة بناءً على قوة النيش والنبرة
-        base_score = 75
-        reasons = []
-        
-        if request.tone == "controversial":
-            base_score += 10
-            reasons.append("High engagement potential due to controversial tone.")
-        elif request.tone == "educational":
-            base_score += 5
-            reasons.append("Steady authority building, but lower viral velocity.")
-            
-        fix = "Increase pacing in the first 3 seconds." if base_score < 85 else "Ensure audio quality is crisp."
-
-        return DominanceScore(
-            score=min(base_score, 99),
-            why=reasons,
-            minimum_fix=fix
-        )
-
-    @staticmethod
-    def generate_hooks(topic: str) -> list[HookVariant]:
-        return [
-            HookVariant(
-                type="A (Pattern Interrupt)",
-                text=f"Stop doing {topic} like this, you are losing money!",
-                visual_cue="Red filter flash + Sirens sound"
-            ),
-            HookVariant(
-                type="B (Curiosity Gap)",
-                text=f"The secret about {topic} no one tells you...",
-                visual_cue="Whisper gesture close to camera"
-            ),
-            HookVariant(
-                type="C (Direct Benefit)",
-                text=f"Here is how to master {topic} in 30 seconds.",
-                visual_cue="Show result proof on screen green screen"
-            )
-        ]
-
-    @staticmethod
-    def construct_timeline(request: DominanceRequest) -> list[ContentSection]:
-        # هيكل الفيديو المثالي (The Golden Structure)
-        return [
-            ContentSection(
-                time_start="00:00", time_end="00:03", 
-                type="HOOK", 
-                script="(Select one of the hooks above)",
-                screen_text="STOP SCROLLING 🛑", 
-                visual_direction="Face close to camera"
-            ),
-            ContentSection(
-                time_start="00:03", time_end="00:15", 
-                type="VALUE / REFRAME", 
-                script=f"Most people think {request.topic_or_keyword} is hard, but actually...",
-                screen_text="The Truth 💡", 
-                visual_direction="Fast cuts, showing examples"
-            ),
-            ContentSection(
-                time_start="00:15", time_end="00:25", 
-                type="THE SOLUTION", 
-                script="You need to use the AI Dominator framework.",
-                screen_text="Step 1.. Step 2..", 
-                visual_direction="Screen recording or list"
-            ),
-            ContentSection(
-                time_start="00:25", time_end="00:30", 
-                type="CTA", 
-                script="Check the link in bio for the full blueprint.",
-                screen_text="LINK IN BIO 🔗", 
-                visual_direction="Pointing up/down"
-            )
-        ]
-
-    @staticmethod
+    @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
     def process(request: DominanceRequest) -> AlphaPack:
-        # 1. تحليل الطلب
-        # 2. توليد النتيجة
-        score = DominanceEngine.calculate_score(request)
-        hooks = DominanceEngine.generate_hooks(request.topic_or_keyword)
-        timeline = DominanceEngine.construct_timeline(request)
+        """
+        يرسل الطلب للذكاء الاصطناعي ويعيد بناء النتيجة كـ AlphaPack object
+        """
         
-        # 3. بناء الحزمة النهائية
-        return AlphaPack(
-            title=f"Dominator Protocol: {request.topic_or_keyword}",
-            dominance_score=score,
-            hooks=hooks,
-            script_timeline=timeline,
-            hashtags=["#AI", f"#{request.topic_or_keyword.replace(' ', '')}", "#Growth"],
-            caption=f"This changes everything about {request.topic_or_keyword}. 🔥 👇",
-            viral_flex_text=f"My AI Strategy Score: {score.score}/100. Can you beat that?"
+        # 1. تجهيز البرومبت
+        user_prompt = generate_user_prompt(
+            topic=request.topic_or_keyword,
+            tone=request.tone.value,
+            niche=request.dna.niche,
+            audience=request.dna.target_audience
         )
+
+        # 2. استدعاء OpenAI (مع فرض وضع JSON)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini", # أو gpt-3.5-turbo-0125 للكفاءة والتوفير
+            messages=[
+                {"role": "system", "content": DOMINATOR_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.7, # توازن بين الإبداع والالتزام
+        )
+
+        # 3. استخراج البيانات ومعالجتها
+        raw_content = response.choices[0].message.content
+        
+        try:
+            data = json.loads(raw_content)
+            
+            # 4. تحويل الـ JSON الخام إلى Pydantic Model (تحقق من الصحة تلقائياً)
+            # نستخدم **data لفك تفكيك القاموس ومطابقته مع الحقول
+            # ملاحظة: الذكاء الاصطناعي قد يغير أسماء الحقول قليلاً، 
+            # لذا سنقوم بـ Mapping يدوي لضمان الصلابة إذا لزم الأمر، 
+            # لكن Pydantic ذكي بما يكفي إذا كان البرومبت دقيقاً.
+            
+            # هنا سنقوم ببناء الكائن يدوياً لضمان تطابق الأسماء
+            # (هذه خطوة أمان إضافية ضد هلوسة الـ AI في أسماء الحقول)
+            
+            return AlphaPack(
+                title=f"AI Protocol: {request.topic_or_keyword}",
+                dominance_score={
+                    "score": data.get("dominance_score", {}).get("score", 85),
+                    "why": data.get("dominance_score", {}).get("why", ["High viral potential detected."]),
+                    "minimum_fix": data.get("dominance_score", {}).get("minimum_fix", "Enhance audio quality.")
+                },
+                hooks=[
+                    {"type": h.get("type", "Generic"), "text": h.get("text", "..."), "visual_cue": h.get("visual_cue", "...")} 
+                    for h in data.get("hooks", [])
+                ],
+                script_timeline=[
+                    {
+                        "time_start": s.get("time_start", "00:00"),
+                        "time_end": s.get("time_end", "00:05"),
+                        "type": s.get("type", "Intro"),
+                        "script": s.get("script", "..."),
+                        "screen_text": s.get("screen_text", ""),
+                        "visual_direction": s.get("visual_direction", "")
+                    }
+                    for s in data.get("script_timeline", [])
+                ],
+                hashtags=data.get("hashtags", ["#Viral"]),
+                caption=data.get("caption", "Check this out."),
+                viral_flex_text=data.get("viral_flex_text", "I just engineered viral content.")
+            )
+
+        except json.JSONDecodeError:
+            # في أسوأ الأحوال، إذا فشل الـ AI في إرجاع JSON سليم
+            raise ValueError("AI Failed to generate valid JSON structure.")
+        except Exception as e:
+            raise ValueError(f"Parsing Error: {str(e)}")
