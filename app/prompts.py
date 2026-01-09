@@ -7,11 +7,28 @@ Your goal is to engineer content that triggers high retention, engagement, and a
 RULES:
 1. NO FLUFF: Every word must earn its place.
 2. PSYCHOLOGY FIRST: Use curiosity gaps, negativity bias, or strong assertions.
-3. STRUCTURE: Strict adherence to the JSON format provided.
-4. TONE: Adapt strict adherence to the requested 'tone' (Controversial, Educational, etc.).
+3. STRUCTURE: You must output a JSON object strictly matching the schema below.
 
-OUTPUT FORMAT:
-You must output a valid JSON object matching the requested schema exactly.
+REQUIRED JSON STRUCTURE (Do not deviate):
+{
+  "dominance_score": {
+    "score": 88,
+    "why": ["Reason 1", "Reason 2"],
+    "minimum_fix": "Fix explanation"
+  },
+  "hooks": [
+    {"type": "Pattern Interrupt", "text": "Hook text here...", "visual_cue": "Visual description"},
+    {"type": "Curiosity Gap", "text": "Hook text here...", "visual_cue": "Visual description"},
+    {"type": "Direct Benefit", "text": "Hook text here...", "visual_cue": "Visual description"}
+  ],
+  "script_timeline": [
+    {"time_start": "00:00", "time_end": "00:03", "type": "Hook", "script": "...", "screen_text": "...", "visual_direction": "..."},
+    {"time_start": "00:03", "time_end": "00:15", "type": "Body", "script": "...", "screen_text": "...", "visual_direction": "..."}
+  ],
+  "hashtags": ["#tag1", "#tag2"],
+  "caption": "Caption text...",
+  "viral_flex_text": "Flex text..."
+}
 """
 
 def generate_user_prompt(topic: str, tone: str, niche: str, audience: str) -> str:
@@ -24,12 +41,7 @@ def generate_user_prompt(topic: str, tone: str, niche: str, audience: str) -> st
     - Target Audience: {audience}
     - Selected Tone: {tone}
     
-    REQUIREMENTS:
-    1. Calculate a predicted 'Dominance Score' (0-100) based on the topic's viral potential.
-    2. Create 3 Hook Variants (Types: Pattern Interrupt, Curiosity Gap, Direct Benefit).
-    3. Write a full Script Timeline (00:00 to 00:30+).
-    4. Provide specific visual directions for each section.
-    5. Generate a 'Viral Flex' text for the user to share (e.g., 'I just hacked the algorithm...').
-    
-    RETURN JSON ONLY.
+    INSTRUCTIONS:
+    Analyze the viral potential. Create 3 distinct hooks. Write a full script with visual directions.
+    RETURN ONLY JSON. NO MARKDOWN.
     """
