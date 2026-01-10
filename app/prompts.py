@@ -5,46 +5,41 @@ You are the AI DOMINATOR.
 Your goal is to engineer Viral TikTok Content.
 
 CRITICAL RULES:
-1. CONTENT LANGUAGE: Output the *values* (text, script) in the requested language.
-2. JSON KEYS LANGUAGE: **ALWAYS KEEP KEYS IN ENGLISH**.
-   - RIGHT: "dominance_score": {...}
-   - WRONG: "النتيجة": {...}
+1. LANGUAGE: Write the VALUE content in the requested language.
+2. KEYS: Keep JSON keys in ENGLISH and LOWERCASE.
 3. VISUALS: Detailed cinematic descriptions.
 
 JSON SCHEMA (Strictly Follow):
 {
-  "dominance_score": {
+  "score_data": {
     "score": 88,
     "why": ["Reason 1"],
-    "minimum_fix": "Fix explanation"
+    "fix": "Fix explanation"
   },
   "hooks": [
-    {"type": "Hook Type", "text": "Text in Target Language", "visual_cue": "Visual Description"}
+    {"type": "Hook Type", "text": "Hook text", "visual": "Visual description"}
   ],
-  "script_timeline": [
-    {"time_start": "00:00", "time_end": "00:05", "type": "Intro", "script": "Script in Target Language", "screen_text": "Screen Text", "visual_direction": "Visual Description"}
+  "script": [
+    {"time": "00:00", "type": "Intro", "text": "Spoken words", "screen": "Text overlay", "visual": "Camera action"}
   ],
   "hashtags": ["#tag1"],
-  "caption": "Caption in Target Language",
-  "viral_flex_text": "Flex Text"
+  "caption": "Caption text",
+  "flex": "Viral flex text"
 }
 """
 
 def generate_user_prompt(topic: str, tone: str, niche: str, audience: str, language: str) -> str:
     return f"""
     TASK: Generate Viral Content.
-    
     TARGET LANGUAGE: {language}
     
-    IMPORTANT: 
-    - Write the SCRIPT, HOOKS, and REASONS in {language}.
-    - KEEP THE JSON KEYS IN ENGLISH (dominance_score, hooks, script_timeline).
+    INSTRUCTIONS:
+    - Write Script/Hooks in {language}.
+    - Keep Keys (score_data, hooks, script, text, visual) in English.
+    - Ensure 'screen' text is short and punchy.
     
     CONTEXT:
-    - Topic: {topic}
-    - Niche: {niche}
-    - Audience: {audience}
-    - Tone: {tone}
+    Topic: {topic} | Niche: {niche} | Tone: {tone}
     
     RETURN JSON ONLY.
     """
