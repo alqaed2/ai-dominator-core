@@ -4,56 +4,87 @@ from app.engine import DominanceEngine
 
 st.set_page_config(page_title="AI DOMINATOR", page_icon="🦅", layout="wide")
 
-# --- إدارة اللغات ---
-LANGUAGES = {
-    "English": {"code": "English", "dir": "ltr", "align": "left"},
-    "Arabic": {"code": "Arabic", "dir": "rtl", "align": "right"},
-    "Spanish": {"code": "Spanish", "dir": "ltr", "align": "left"},
-    "French": {"code": "French", "dir": "ltr", "align": "left"},
-    "German": {"code": "German", "dir": "ltr", "align": "left"},
-    "Chinese": {"code": "Chinese", "dir": "ltr", "align": "left"},
+# --- قاموس الترجمة (The Translation Matrix) ---
+TRANSLATIONS = {
+    "English": {
+        "dir": "ltr", "align": "left",
+        "header_title": "MISSION PARAMETERS",
+        "lbl_topic": "Topic / Keyword",
+        "lbl_niche": "Niche",
+        "lbl_audience": "Target Audience",
+        "lbl_tone": "Tone Strategy",
+        "lbl_platform": "Platform",
+        "btn_exec": "🚀 EXECUTE DOMINANCE",
+        "res_score": "Dominance Probability",
+        "res_hooks": "Viral Hooks",
+        "res_script": "Execution Script",
+        "res_copy": "Copy",
+        "err_fail": "System Failure"
+    },
+    "Arabic": {
+        "dir": "rtl", "align": "right",
+        "header_title": "إعدادات المهمة",
+        "lbl_topic": "الموضوع / الكلمة المفتاحية",
+        "lbl_niche": "المجال / النيش",
+        "lbl_audience": "الجمهور المستهدف",
+        "lbl_tone": "نبرة المحتوى",
+        "lbl_platform": "المنصة",
+        "btn_exec": "🚀 تنفيذ الهيمنة",
+        "res_score": "احتمالية الانتشار",
+        "res_hooks": "الخطافات الفيروسية (Hooks)",
+        "res_script": "السيناريو التنفيذي",
+        "res_copy": "نسخ",
+        "err_fail": "فشل النظام"
+    }
 }
 
-# --- الشريط الجانبي ---
+# --- إعدادات اللغة ---
 with st.sidebar:
-    st.header("⚙️ Configuration")
+    st.header("🌐 Language / اللغة")
+    selected_lang_code = st.selectbox("Select Interface Language", ["English", "Arabic"], index=1) # الافتراضي: العربية
     
-    # زر اختيار اللغة
-    selected_lang_key = st.selectbox("🌐 Interface Language", list(LANGUAGES.keys()), index=0)
-    lang_config = LANGUAGES[selected_lang_key]
-    
-    st.divider()
-    st.subheader("🎯 Mission Parameters")
-    topic = st.text_input("Topic / Keyword", "How AI replaces agencies")
-    niche = st.text_input("Niche", "Digital Marketing")
-    audience = st.text_input("Audience", "Agency Owners")
-    tone_str = st.selectbox("Tone", ["controversial", "educational", "storytelling", "direct_sales"])
-    platform_str = st.selectbox("Platform", ["tiktok", "instagram_reels", "youtube_shorts"])
-    
-    generate_btn = st.button("🚀 EXECUTE", type="primary", use_container_width=True)
+    # تحميل قاموس اللغة المختارة
+    t = TRANSLATIONS[selected_lang_code]
 
-# --- CSS ديناميكي حسب اللغة ---
+    st.divider()
+    st.header(f"🎯 {t['header_title']}")
+    
+    # استخدام القاموس للعناوين
+    topic = st.text_input(t['lbl_topic'], "كيف يغير الذكاء الاصطناعي العالم")
+    niche = st.text_input(t['lbl_niche'], "التسويق الرقمي")
+    audience = st.text_input(t['lbl_audience'], "أصحاب الشركات")
+    
+    tone_str = st.selectbox(t['lbl_tone'], ["controversial", "educational", "storytelling", "direct_sales"])
+    platform_str = st.selectbox(t['lbl_platform'], ["tiktok", "instagram_reels", "youtube_shorts"])
+    
+    generate_btn = st.button(t['btn_exec'], type="primary", use_container_width=True)
+
+# --- CSS لتعديل الاتجاه (RTL/LTR) ---
 st.markdown(f"""
 <style>
     .stApp {{ background-color: #0e1117; color: #ffffff; }}
-    .content-box {{ direction: {lang_config['dir']}; text-align: {lang_config['align']}; }}
-    .big-score {{ font-size: 80px; font-weight: 800; color: #00ff41; text-align: center; }}
-    /* جعل كود النسخ يبدو كصندوق نصي عادي */
-    .stCodeBlock {{ direction: {lang_config['dir']} !important; }}
+    /* تطبيق الاتجاه على النصوص */
+    .element-container, .stMarkdown, .stText, .stCodeBlock {{ direction: {t['dir']}; text-align: {t['align']}; }}
+    /* استثناء العناوين الكبيرة */
+    .big-score {{ direction: ltr; font-size: 80px; font-weight: 800; color: #00ff41; text-align: center; }}
+    /* تحسين القوائم */
+    div[data-baseweb="select"] {{ direction: {t['dir']}; }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- الهيدر ---
+# --- الهيدر الرئيسي ---
 col1, col2 = st.columns([1, 6])
 with col1: st.write("🦅")
 with col2: 
     st.title("AI DOMINATOR // GLOBAL")
-    st.caption(f"Language Mode: {selected_lang_key}")
+    st.caption(f"System Mode: {selected_lang_code}")
 
 st.divider()
 
 if generate_btn:
-    with st.status("⚙️ Neural Core Processing...", expanded=True) as status:
+    # حالة التشغيل
+    loading_text = "جاري المعالجة..." if selected_lang_code == "Arabic" else "Processing..."
+    with st.status(f"⚙️ {loading_text}", expanded=True) as status:
         try:
             # تجهيز الطلب
             dna_obj = CreatorDNA(niche=niche, target_audience=audience, key_strengths=[])
@@ -64,60 +95,60 @@ if generate_btn:
                 dna=dna_obj
             )
             
-            # الاستدعاء مع اللغة المختارة
-            data = DominanceEngine.process(request_obj, language=lang_config['code'])
-            status.update(label="✅ Success!", state="complete", expanded=False)
+            # استدعاء المحرك مع اللغة
+            data = DominanceEngine.process(request_obj, language=selected_lang_code)
             
-            # --- النتائج ---
+            success_msg = "تمت العملية!" if selected_lang_code == "Arabic" else "Dominance Secured!"
+            status.update(label=f"✅ {success_msg}", state="complete", expanded=False)
+            
+            # --- عرض النتائج ---
             
             # 1. Score
+            st.subheader(f"⚡ {t['res_score']}")
             c1, c2 = st.columns([1, 2])
             with c1: st.markdown(f'<div class="big-score">{data.dominance_score.score}%</div>', unsafe_allow_html=True)
             with c2: 
-                st.info(f"💡 Fix: {data.dominance_score.minimum_fix}")
-                # زر نسخ التحليل
-                fix_text = f"Fix: {data.dominance_score.minimum_fix}\nWhy: {', '.join(data.dominance_score.why)}"
-                st.code(fix_text, language="text")
+                fix_label = "التحسين:" if selected_lang_code == "Arabic" else "Fix:"
+                st.info(f"💡 **{fix_label}** {data.dominance_score.minimum_fix}")
+                st.code(f"{fix_label} {data.dominance_score.minimum_fix}", language="text")
 
             st.divider()
 
-            # 2. Hooks (مع زر نسخ)
-            st.subheader("🪝 Hooks")
+            # 2. Hooks
+            st.subheader(f"🪝 {t['res_hooks']}")
             if data.hooks:
                 for hook in data.hooks:
                     with st.container(border=True):
                         st.markdown(f"**{hook.type}**")
-                        # نستخدم st.code للنسخ السهل
-                        st.code(hook.text, language="text") 
-                        st.caption(f"👁️ Visual: {hook.visual_cue}")
+                        st.code(hook.text, language="text") # زر نسخ للنص
+                        visual_label = "👁️ المشهد:" if selected_lang_code == "Arabic" else "👁️ Visual:"
+                        st.caption(f"{visual_label} {hook.visual_cue}")
 
             st.divider()
 
-            # 3. Script (مع زر نسخ)
-            st.subheader("📜 Script")
+            # 3. Script
+            st.subheader(f"📜 {t['res_script']}")
             full_script_text = ""
             for section in data.script_timeline:
-                full_script_text += f"[{section.time_start}] ({section.type}): {section.script}\n"
+                # تجميع النص للنسخ الكامل
+                full_script_text += f"[{section.time_start}] {section.script}\n"
                 
-                with st.expander(f"{section.time_start} - {section.type}", expanded=True):
-                    c_a, c_b = st.columns([3, 1])
-                    with c_a:
-                        st.markdown(f"**Script:** {section.script}")
-                        st.caption(f"**Visual:** {section.visual_direction}")
-                    with c_b:
-                        st.error(f"📺 {section.screen_text}")
+                with st.expander(f"{section.time_start} | {section.type}", expanded=True):
+                    st.markdown(f"**🎙️:** {section.script}")
+                    st.caption(f"**🎥:** {section.visual_direction}")
+                    st.error(f"**📺:** {section.screen_text}")
             
-            # زر لنسخ السكريبت كاملاً
-            st.markdown("👇 **Copy Full Script**")
+            st.markdown("👇 **Full Script / النص الكامل**")
             st.code(full_script_text, language="text")
 
             st.divider()
             
             # 4. Hashtags & Caption
-            st.subheader("#️⃣ Hashtags & Caption")
+            st.subheader("#️⃣ Hashtags")
             tags_text = " ".join(data.hashtags)
             st.code(tags_text, language="text")
             st.code(data.caption, language="text")
 
         except Exception as e:
-            st.error(f"Error: {str(e)}")
+            status.update(label="❌ Error", state="error")
+            st.error(f"{t['err_fail']}: {str(e)}")
