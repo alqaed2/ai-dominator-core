@@ -10,13 +10,11 @@ from app.prompts import generate_user_prompt
 settings = get_settings()
 genai.configure(api_key=settings.GOOGLE_API_KEY)
 
-# القائمة التكتيكية
 TACTICAL_MODELS = ["gemini-flash-latest"]
 
 def fetch_external_hashtags(keyword: str):
     api_key = os.getenv("RAPID_API_KEY")
-    if not api_key:
-        return [] 
+    if not api_key: return [] 
     try:
         url = "https://rocketapi-for-tiktok.p.rapidapi.com/hashtags/search"
         headers = {"X-RapidAPI-Key": api_key, "X-RapidAPI-Host": "rocketapi-for-tiktok.p.rapidapi.com"}
@@ -24,9 +22,20 @@ def fetch_external_hashtags(keyword: str):
         if response.status_code == 200:
             data = response.json()
             return [f"#{tag['name']}" for tag in data.get('hashtags', [])[:10]]
-    except:
-        return []
+    except: return []
     return []
+
+def smart_get(data: dict, keys: list, default=None):
+    """
+    دالة ذكية تبحث عن المفتاح بعدة صيغ (صغيرة، كبيرة، مختلطة)
+    """
+    # تحويل كل مفاتيح البيانات الموجودة إلى أحرف صغيرة للمقارنة
+    normalized_data = {k.lower(): v for k, v in data.items()}
+    
+    for key in keys:
+        if key.lower() in normalized_data:
+            return normalized_data[key.lower()]
+    return default
 
 class DominanceEngine:
     @staticmethod
@@ -57,46 +66,50 @@ class DominanceEngine:
                 
                 response = model.generate_content(user_prompt, safety_settings=safety)
                 
-                # تنظيف النص
                 text_content = response.text.replace("```json", "").replace("```", "").strip()
                 data = json.loads(text_content)
 
-                # --- الحماية الدفاعية (Defensive Mapping) ---
-                # هنا نضمن وجود البيانات حتى لو نسيها النموذج
+                # --- المصحح الذكي (Smart Fixer) ---
                 
-                # 1. Score Guard
-                raw_score = data.get("dominance_score", {})
+                # 1. Score Fixer
+                # نبحث عن dominance_score أو DominanceScore أو Score
+                raw_score = smart_get(data, ["dominance_score", "DominanceScore", "score"], {})
+                # داخل السكور، نبحث عن المفاتيح الفرعية
                 safe_score = {
-                    "score": raw_score.get("score", 0),
-                    "why": raw_score.get("why", ["Analysis pending..."]),
-                    "minimum_fix": raw_score.get("minimum_fix", "Review content manually")
+                    "score": smart_get(raw_score, ["score", "val", "value"], 85),
+                    "why": smart_get(raw_score, ["why", "reasons"], ["High Potential"]),
+                    "minimum_fix": smart_get(raw_score, ["minimum_fix", "fix", "improvement"], "Check hooks")
                 }
 
-                # 2. Hooks Guard
-                raw_hooks = data.get("hooks", [])
+                # 2. Hooks Fixer
+                raw_hooks = smart_get(data, ["hooks", "viral_hooks"], [])
                 safe_hooks = []
                 for h in raw_hooks:
                     safe_hooks.append({
-                        "type": h.get("type", "Hook"),
-                        "text": h.get("text", "..."),
-                        "visual_cue": h.get("visual_cue", "...")
+                        "type": smart_get(h, ["type", "category"], "Hook"),
+                        "text": smart_get(h, ["text", "content"], "..."),
+                        "visual_cue": smart_get(h, ["visual_cue", "visual", "scene"], "Cinematic shot")
                     })
 
-                # 3. Script Guard
-                raw_timeline = data.get("script_timeline", [])
+                # 3. Script Fixer
+                raw_timeline = smart_get(data, ["script_timeline", "script", "timeline"], [])
                 safe_timeline = []
                 for s in raw_timeline:
                     safe_timeline.append({
-                        "time_start": s.get("time_start", "00:00"),
-                        "time_end": s.get("time_end", "00:00"),
-                        "type": s.get("type", "Section"),
-                        "script": s.get("script", "..."),
-                        "screen_text": s.get("screen_text", ""),
-                        "visual_direction": s.get("visual_direction", "")
+                        "time_start": smart_get(s, ["time_start", "start"], "00:00"),
+                        "time_end": smart_get(s, ["time_end", "end"], "00:00"),
+                        "type": smart_get(s, ["type", "section"], "Body"),
+                        "script": smart_get(s, ["script", "text", "voiceover"], "..."),
+                        "screen_text": smart_get(s, ["screen_text", "screen", "overlay"], ""),
+                        "visual_direction": smart_get(s, ["visual_direction", "visual", "action"], "")
                     })
 
-                # دمج الهاشتاجات
-                final_hashtags = real_hashtags if real_hashtags else data.get("hashtags", [])
+                # 4. Hashtags & Caption Fixer
+                ai_hashtags = smart_get(data, ["hashtags", "tags"], [])
+                final_hashtags = real_hashtags if real_hashtags else ai_hashtags
+                
+                final_caption = smart_get(data, ["caption", "description"], "Check this out!")
+                final_flex = smart_get(data, ["viral_flex_text", "flex"], "Engineered by AI.")
 
                 return AlphaPack(
                     title=f"Protocol ({model_name})",
@@ -104,13 +117,13 @@ class DominanceEngine:
                     hooks=safe_hooks,
                     script_timeline=safe_timeline,
                     hashtags=final_hashtags,
-                    caption=data.get("caption", ""),
-                    viral_flex_text=data.get("viral_flex_text", "AI Generated")
+                    caption=final_caption,
+                    viral_flex_text=final_flex
                 )
+
             except Exception as e:
                 print(f"❌ Error with {model_name}: {str(e)}")
                 last_error = str(e)
                 continue
         
         raise ValueError(f"System Exhausted. Last Error: {last_error}")
-
