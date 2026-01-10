@@ -11,7 +11,7 @@ settings = get_settings()
 genai.configure(api_key=settings.GOOGLE_API_KEY)
 
 # نستخدم فلاش وبرو لضمان العمل
-TACTICAL_MODELS = ["gemini-1.5-flash", "gemini-pro"]
+TACTICAL_MODELS = ["gemini-flash-latest"]
 
 def fetch_external_hashtags(keyword: str):
     """
@@ -89,3 +89,4 @@ class DominanceEngine:
         
         # إذا وصلنا هنا، نعيد الخطأ الحقيقي للواجهة
         raise ValueError(f"System Exhausted. Last Error: {last_error}")
+
