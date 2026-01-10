@@ -25,11 +25,15 @@ def fetch_external_hashtags(keyword: str):
     except: return []
     return []
 
-def smart_get(data: dict, keys: list, default=None):
+def smart_get(data, keys: list, default=None):
     """
-    دالة ذكية تبحث عن المفتاح بعدة صيغ (صغيرة، كبيرة، مختلطة)
+    دالة ذكية ومحمية ضد أخطاء الأنواع.
     """
-    # تحويل كل مفاتيح البيانات الموجودة إلى أحرف صغيرة للمقارنة
+    # حماية ضد البيانات غير القاموسية (مثل int أو string)
+    if not isinstance(data, dict):
+        return default
+        
+    # تحويل المفاتيح للمقارنة
     normalized_data = {k.lower(): v for k, v in data.items()}
     
     for key in keys:
@@ -69,43 +73,59 @@ class DominanceEngine:
                 text_content = response.text.replace("```json", "").replace("```", "").strip()
                 data = json.loads(text_content)
 
-                # --- المصحح الذكي (Smart Fixer) ---
+                # --- التصحيح الذكي (Smart Fixer) ---
                 
-                # 1. Score Fixer
-                # نبحث عن dominance_score أو DominanceScore أو Score
+                # 1. Score Fixer (معالجة جميع الحالات)
                 raw_score = smart_get(data, ["dominance_score", "DominanceScore", "score"], {})
-                # داخل السكور، نبحث عن المفاتيح الفرعية
-                safe_score = {
-                    "score": smart_get(raw_score, ["score", "val", "value"], 85),
-                    "why": smart_get(raw_score, ["why", "reasons"], ["High Potential"]),
-                    "minimum_fix": smart_get(raw_score, ["minimum_fix", "fix", "improvement"], "Check hooks")
-                }
+                
+                # إذا جاء السكور كرقم مباشر (خطأ شائع من الذكاء الاصطناعي)
+                if isinstance(raw_score, int) or isinstance(raw_score, float):
+                    safe_score = {
+                        "score": int(raw_score),
+                        "why": ["Analysis provided in hooks"],
+                        "minimum_fix": "Check engagement manually"
+                    }
+                else:
+                    # الحالة الطبيعية (قاموس)
+                    safe_score = {
+                        "score": smart_get(raw_score, ["score", "val", "value"], 85),
+                        "why": smart_get(raw_score, ["why", "reasons"], ["High Potential"]),
+                        "minimum_fix": smart_get(raw_score, ["minimum_fix", "fix", "improvement"], "Check hooks")
+                    }
 
                 # 2. Hooks Fixer
                 raw_hooks = smart_get(data, ["hooks", "viral_hooks"], [])
+                if not isinstance(raw_hooks, list): raw_hooks = [] # حماية إضافية
+                
                 safe_hooks = []
                 for h in raw_hooks:
-                    safe_hooks.append({
-                        "type": smart_get(h, ["type", "category"], "Hook"),
-                        "text": smart_get(h, ["text", "content"], "..."),
-                        "visual_cue": smart_get(h, ["visual_cue", "visual", "scene"], "Cinematic shot")
-                    })
+                    if isinstance(h, dict): # التأكد أن العنصر قاموس
+                        safe_hooks.append({
+                            "type": smart_get(h, ["type", "category"], "Hook"),
+                            "text": smart_get(h, ["text", "content"], "..."),
+                            "visual_cue": smart_get(h, ["visual_cue", "visual", "scene"], "Cinematic shot")
+                        })
 
                 # 3. Script Fixer
                 raw_timeline = smart_get(data, ["script_timeline", "script", "timeline"], [])
+                if not isinstance(raw_timeline, list): raw_timeline = []
+                
                 safe_timeline = []
                 for s in raw_timeline:
-                    safe_timeline.append({
-                        "time_start": smart_get(s, ["time_start", "start"], "00:00"),
-                        "time_end": smart_get(s, ["time_end", "end"], "00:00"),
-                        "type": smart_get(s, ["type", "section"], "Body"),
-                        "script": smart_get(s, ["script", "text", "voiceover"], "..."),
-                        "screen_text": smart_get(s, ["screen_text", "screen", "overlay"], ""),
-                        "visual_direction": smart_get(s, ["visual_direction", "visual", "action"], "")
-                    })
+                    if isinstance(s, dict):
+                        safe_timeline.append({
+                            "time_start": smart_get(s, ["time_start", "start"], "00:00"),
+                            "time_end": smart_get(s, ["time_end", "end"], "00:00"),
+                            "type": smart_get(s, ["type", "section"], "Body"),
+                            "script": smart_get(s, ["script", "text", "voiceover"], "..."),
+                            "screen_text": smart_get(s, ["screen_text", "screen", "overlay"], ""),
+                            "visual_direction": smart_get(s, ["visual_direction", "visual", "action"], "")
+                        })
 
                 # 4. Hashtags & Caption Fixer
                 ai_hashtags = smart_get(data, ["hashtags", "tags"], [])
+                if not isinstance(ai_hashtags, list): ai_hashtags = []
+                
                 final_hashtags = real_hashtags if real_hashtags else ai_hashtags
                 
                 final_caption = smart_get(data, ["caption", "description"], "Check this out!")
