@@ -10,7 +10,7 @@ from app.prompts import generate_user_prompt
 settings = get_settings()
 genai.configure(api_key=settings.GOOGLE_API_KEY)
 
-TACTICAL_MODELS = ["gemini-1.5-flash", "gemini-pro"]
+TACTICAL_MODELS = ["gemini-flash-latest"]
 
 def fetch_external_hashtags(keyword: str):
     api_key = os.getenv("RAPID_API_KEY")
@@ -160,3 +160,4 @@ class DominanceEngine:
                 continue
         
         raise ValueError(f"System Error: {last_error}")
+
