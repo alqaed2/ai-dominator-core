@@ -1,125 +1,116 @@
 import streamlit as st
-import requests
-import json
-
-# --- إعدادات الاتصال ---
-# ⚠️ استبدل هذا الرابط برابط سيرفرك الحقيقي على Render
-# مثال: https://ai-dominator-core.onrender.com
-API_URL = "https://ai-dominator-core.onrender.com" 
+from app.schemas import DominanceRequest, CreatorDNA, Platform, ContentTone
+from app.engine import DominanceEngine
 
 st.set_page_config(page_title="AI DOMINATOR", page_icon="🦅", layout="wide")
 
-# --- التصميم البصري ---
-st.markdown("""
+TRANSLATIONS = {
+    "English": {
+        "dir": "ltr", "align": "left",
+        "lbl_topic": "Topic", "lbl_niche": "Niche", "lbl_audience": "Audience",
+        "lbl_url": "🔥 Clone Viral Video (Optional URL)",
+        "btn_exec": "🚀 EXECUTE", "res_hooks": "Viral Hooks", "res_script": "Script",
+        "res_visual": "Visual:", "res_screen": "Screen Overlay:"
+    },
+    "Arabic": {
+        "dir": "rtl", "align": "right",
+        "lbl_topic": "الموضوع", "lbl_niche": "المجال", "lbl_audience": "الجمهور",
+        "lbl_url": "🔥 استنساخ فيديو ناجح (رابط اختياري)",
+        "btn_exec": "🚀 تنفيذ الهيمنة", "res_hooks": "الخطافات", "res_script": "السيناريو",
+        "res_visual": "المشهد:", "res_screen": "على الشاشة:"
+    }
+}
+
+with st.sidebar:
+    st.header("🌐 Language")
+    lang_code = st.selectbox("Select", ["English", "Arabic"], index=1)
+    t = TRANSLATIONS[lang_code]
+    
+    st.divider()
+    topic = st.text_input(t['lbl_topic'], "التسويق بالعمولة للمبتدئين")
+    
+    # حقل الرابط الجديد
+    video_url = st.text_input(t['lbl_url'], placeholder="https://www.tiktok.com/@user/video/...")
+    
+    niche = st.text_input(t['lbl_niche'], "Marketing")
+    audience = st.text_input(t['lbl_audience'], "Beginners")
+    tone = st.selectbox("Tone", ["controversial", "educational", "storytelling"])
+    platform = st.selectbox("Platform", ["tiktok", "instagram"])
+    btn = st.button(t['btn_exec'], type="primary", use_container_width=True)
+
+# CSS (نفس السابق)
+st.markdown(f"""
 <style>
-    .stApp { background-color: #0e1117; color: #ffffff; }
-    .big-score { font-size: 80px; font-weight: bold; color: #00ff41; text-align: center; }
-    .metric-card { background-color: #1f2937; padding: 20px; border-radius: 10px; border: 1px solid #374151; }
-    h1, h2, h3 { color: #00ff41 !important; font-family: 'Courier New', monospace; }
+    .stApp {{ background-color: #0e1117; }}
+    .element-container, .stMarkdown, .stText {{ direction: {t['dir']}; text-align: {t['align']}; }}
+    .big-score {{ direction: ltr; font-size: 80px; color: #00ff41; text-align: center; font-weight: bold; }}
+    .script-box {{ background-color: #1f2937; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #374151; }}
+    .visual-tag {{ color: #fbbf24; font-size: 0.9em; }}
+    .screen-tag {{ color: #ef4444; font-weight: bold; }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- الهيدر ---
-col1, col2 = st.columns([1, 4])
-with col1:
-    st.image("https://img.icons8.com/color/96/artificial-intelligence.png", width=80)
-with col2:
-    st.title("AI DOMINATOR // V1")
-    st.caption("Supreme Controlled Innovation & Execution System")
+col1, col2 = st.columns([1, 8])
+with col1: st.write("🦅")
+with col2: st.title("AI DOMINATOR // GLOBAL")
 
-st.divider()
-
-# --- المدخلات ---
-with st.sidebar:
-    st.header("🎯 Target Parameters")
-    
-    topic = st.text_input("Topic / Keyword", "How AI replaces agencies")
-    niche = st.text_input("Niche", "Digital Marketing")
-    audience = st.text_input("Audience", "Agency Owners")
-    
-    tone = st.selectbox("Tone Strategy", 
-        ["controversial", "educational", "storytelling", "direct_sales"])
-    
-    platform = st.selectbox("Platform", ["tiktok", "instagram_reels", "youtube_shorts"])
-    
-    generate_btn = st.button("🚀 INITIATE DOMINANCE", type="primary", use_container_width=True)
-
-# --- المنطق والتشغيل ---
-if generate_btn:
-    with st.status("⚙️ Neural Engine Processing...", expanded=True) as status:
-        st.write("Connecting to Supreme Backend...")
-        
-        payload = {
-            "topic_or_keyword": topic,
-            "platform": platform,
-            "tone": tone,
-            "dna": {
-                "niche": niche,
-                "target_audience": audience,
-                "key_strengths": ["Innovation"]
-            }
-        }
-        
+if btn:
+    status_msg = "جاري سحب الـ DNA وتحليله..." if video_url else "جاري المعالجة..."
+    with st.status(f"⚙️ {status_msg}", expanded=True) as status:
         try:
-            # الاتصال بالسيرفر
-            response = requests.post(f"{API_URL}/api/v1/generate", json=payload)
+            req = DominanceRequest(
+                topic_or_keyword=topic, platform=Platform(platform), tone=ContentTone(tone),
+                dna=CreatorDNA(niche=niche, target_audience=audience, key_strengths=[])
+            )
             
-            if response.status_code == 200:
-                data = response.json()
-                status.update(label="✅ Dominance Pack Generated!", state="complete", expanded=False)
-                
-                # --- عرض النتائج ---
-                
-                # 1. Score Section
-                st.subheader("⚡ Dominance Probability")
-                score_col, why_col = st.columns([1, 2])
-                
-                with score_col:
-                    score_val = data['dominance_score']['score']
-                    st.markdown(f'<div class="big-score">{score_val}%</div>', unsafe_allow_html=True)
-                
-                with why_col:
-                    st.info(f"💡 **Minimum Fix:** {data['dominance_score']['minimum_fix']}")
-                    for reason in data['dominance_score']['why']:
-                        st.caption(f"• {reason}")
+            # تمرير الرابط للمحرك
+            data = DominanceEngine.process(req, language=lang_code, video_url=video_url)
+            
+            status.update(label="✅ Done!", state="complete", expanded=False)
+            
+            # (نفس كود عرض النتائج السابق تماماً)
+            # ...
+            # ...
+            # (أعد نسخ جزء عرض النتائج Score, Hooks, Script من الكود السابق هنا)
+            
+            c1, c2 = st.columns([1, 2])
+            with c1: st.markdown(f'<div class="big-score">{data.dominance_score.score}%</div>', unsafe_allow_html=True)
+            with c2: 
+                fix_text = f"Fix: {data.dominance_score.minimum_fix}"
+                st.info(fix_text)
+                st.code(fix_text, language="text")
 
-                st.divider()
+            st.divider()
+            st.subheader(f"🪝 {t['res_hooks']}")
+            for h in data.hooks:
+                with st.container(border=True):
+                    st.markdown(f"**{h.type}**")
+                    st.code(h.text, language="text")
+                    st.markdown(f"<span class='visual-tag'>👁️ {h.visual_cue}</span>", unsafe_allow_html=True)
 
-                # 2. Hooks Section
-                st.subheader("🪝 Viral Hooks (A/B/C)")
-                cols = st.columns(3)
-                for idx, hook in enumerate(data['hooks']):
-                    with cols[idx]:
-                        with st.container(border=True):
-                            st.markdown(f"**Type:** `{hook['type']}`")
-                            st.write(f"🗣️ *\"{hook['text']}\"*")
-                            st.warning(f"👁️ {hook['visual_cue']}")
+            st.divider()
+            st.subheader(f"📜 {t['res_script']}")
+            full_text = ""
+            for s in data.script_timeline:
+                full_text += f"[{s.time_start}] {s.script}\n"
+                st.markdown(f"""
+                <div class="script-box">
+                    <div style="color: #9ca3af; font-size: 0.8em;">⏱️ {s.time_start} | {s.type}</div>
+                    <div style="font-size: 1.1em; margin: 5px 0; color: white;">{s.script}</div>
+                    <div style="margin-top: 10px;">
+                        <span class="visual-tag">🎥 {s.visual_direction}</span><br>
+                        <span class="screen-tag">📺 {s.screen_text if s.screen_text else "---"}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
-                st.divider()
+            st.markdown("👇 **Copy Full Script**")
+            st.code(full_text, language="text")
+            
+            st.divider()
+            st.subheader("#️⃣ Hashtags")
+            st.code(" ".join(data.hashtags), language="text")
 
-                # 3. Script Timeline
-                st.subheader("📜 Execution Script")
-                for section in data['script_timeline']:
-                    with st.expander(f"{section['time_start']} - {section['type']}", expanded=True):
-                        c1, c2 = st.columns([3, 1])
-                        with c1:
-                            st.write(f"**Script:** {section['script']}")
-                        with c2:
-                            st.error(f"**Screen:** {section['screen_text']}")
-                            st.caption(f"**Visual:** {section['visual_direction']}")
-                
-                # 4. Viral Flex
-                st.divider()
-                st.success(f"📢 **Viral Flex Card Text:** {data['viral_flex_text']}")
-                st.code(" ".join(data['hashtags']))
-
-            else:
-                status.update(label="❌ Execution Failed", state="error")
-                st.error(f"Server Error: {response.text}")
-                
         except Exception as e:
-            status.update(label="❌ Connection Failed", state="error")
-            st.error(f"Could not reach the Brain: {str(e)}")
-
-else:
-    st.info("👈 Enter parameters and press INITIATE to begin.")
+            status.update(label="❌ Error", state="error")
+            st.error(str(e))
