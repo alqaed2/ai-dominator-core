@@ -14,7 +14,7 @@ settings = get_settings()
 genai.configure(api_key=settings.GOOGLE_API_KEY)
 
 # نستخدم هذا النموذج حصراً لاستقراره
-MODEL_NAME = "gemini-1.5-flash"
+MODEL_NAME = "gemini-flash-latest"
 
 # --- دوال المساعدة ---
 def recursive_lowercase(obj):
@@ -175,3 +175,4 @@ class DominanceEngine:
         except Exception as e:
             print(f"❌ Critical Error: {e}")
             raise ValueError(f"System Overload or API Limit. Try again in 10s. Error: {str(e)}")
+
