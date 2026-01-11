@@ -12,7 +12,7 @@ settings = get_settings()
 genai.configure(api_key=settings.GOOGLE_API_KEY)
 
 # القائمة التكتيكية
-TACTICAL_MODELS = ["gemini-1.5-flash"]
+TACTICAL_MODELS = ["gemini-flash-latest"]
 
 # --- دوال المساعدة ---
 def recursive_lowercase(obj):
@@ -117,3 +117,4 @@ class DominanceEngine:
                 continue
         
         raise ValueError(f"System Error: {last_error}")
+
